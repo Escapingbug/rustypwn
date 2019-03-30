@@ -1,0 +1,10 @@
+[package]
+name = "rustypwn"
+version = "0.1.0"
+authors = ["Anciety <anciety512@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rustypwn_derive = { path = "../rustypwn_derive" }
+regex = "1"
+crossterm = "0.6"
