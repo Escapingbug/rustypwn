@@ -1,6 +1,5 @@
-use crate::error::Result;
 use regex::bytes::Regex;
-use super::error::TubeError;
+use super::error::Error;
 
 /// buffer to store stream data
 #[derive(Default, Debug)]
@@ -21,8 +20,8 @@ impl Buffer {
         self.data = data;
     }
 
-    pub fn get_until(&mut self, pat: &str) -> Result<Option<Vec<u8>>> {
-        let re = Regex::new(pat).map_err(|e| TubeError::from(e))?;
+    pub fn get_until(&mut self, pat: &str) -> Result<Option<Vec<u8>>, Error> {
+        let re = Regex::new(pat).map_err(|e| Error::from_source(Box::new(e)))?;
         match re.find(self.data.as_slice()) {
             Some(mat) => {
                 let data = self.data.clone();

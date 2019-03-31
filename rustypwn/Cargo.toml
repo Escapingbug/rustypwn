@@ -8,3 +8,4 @@ edition = "2018"
 rustypwn_derive = { path = "../rustypwn_derive" }
 regex = "1"
 crossterm = "0.6"
+log = "0.4"
