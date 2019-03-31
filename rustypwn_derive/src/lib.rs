@@ -2,10 +2,10 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, Span};
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, DeriveInput, Data, Meta, Lit, DataEnum, Variant, MetaNameValue};
+use syn::{parse_macro_input, DeriveInput, Data, Meta, Lit, DataEnum, Variant, MetaNameValue, Ident};
 
 /// implements derive macro ActionArg on an action argument type
 ///
@@ -45,21 +45,11 @@ use syn::{parse_macro_input, DeriveInput, Data, Meta, Lit, DataEnum, Variant, Me
 ///     pub content: Vec<u8>,
 /// }
 ///
-/// impl TryFrom<Action> for Send {
-///     type Error = super::error::Error;
-///
-///     fn try_from(action: Action) -> Result<Self, Self::Error> {
-///         match action {
-///             Action::Send {
-///                 timeout,
-///                 content,
-///             } => {
-///                 Ok(Self {
-///                     timeout: timeout,
-///                     content: content
-///                 })
-///             },
-///             _ => Err(Self::Error{ kind: super::error::ErrorKind::IncorrectAction} ),
+/// impl From<Send> for Action {
+///     fn from(action: Send) -> Self {
+///         Action::Send {
+///             timeout: action.timeout,
+///             content: action.content
 ///         }
 ///     }
 /// }
@@ -89,6 +79,10 @@ use syn::{parse_macro_input, DeriveInput, Data, Meta, Lit, DataEnum, Variant, Me
 ///         self
 ///     }
 /// }
+///
+/// pub fn send() -> Send {
+///     Send::default()
+/// }
 /// ```
 #[proc_macro_derive(ActionArg, attributes(default))]
 pub fn arction_arg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -108,7 +102,7 @@ pub fn arction_arg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
     };
 
-    let variants_impl = impl_variants(&data);
+    let variants_impl = impl_variants(&input.ident, &data);
 
     let output = quote! {
         use std::convert::TryFrom;
@@ -119,21 +113,20 @@ pub fn arction_arg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::from(output)
 }
 
-fn impl_variants(data: &DataEnum) -> Vec<TokenStream> {
+fn impl_variants(enum_name: &Ident, data: &DataEnum) -> Vec<TokenStream> {
     let mut impls = Vec::new();
     for variant in data.variants.iter() {
-        impls.push(impl_single_variant(&variant));
+        impls.push(impl_single_variant(enum_name, &variant));
     }
     impls
 }
 
-fn impl_single_variant(variant: &Variant) -> TokenStream {
+fn impl_single_variant(enum_name: &Ident, variant: &Variant) -> TokenStream {
     let name = &variant.ident;
 
     let mut fields = Vec::new();
     let mut fields_default = Vec::new();
     let mut fields_methods = Vec::new();
-    let mut fields_names = Vec::new();
     let mut fields_setups = Vec::new();
 
     for field in variant.fields.iter() {
@@ -148,9 +141,8 @@ fn impl_single_variant(variant: &Variant) -> TokenStream {
                 panic!("incorrect enum")
             }
         };
-        fields_names.push(field_name);
         fields_setups.push(quote! {
-            #field_name: #field_name,
+            #field_name: action.#field_name,
         });
 
         let ty = &field.ty;
@@ -186,23 +178,21 @@ fn impl_single_variant(variant: &Variant) -> TokenStream {
         });
     }
 
-    let try_from_impl = quote! {
-        impl TryFrom<Action> for #name {
-            type Error = super::error::Error;
-
-            fn try_from(action: Action) -> Result<Self, Self::Error> {
-                match action {
-                    Action::#name {
-                        #(#fields_names),*
-                    } => {
-                        Ok(Self {
-                            #(#fields_setups)*
-                        })
-                    },
-
-                    _ => Err(Self::Error{ kind: super::error::ErrorKind::IncorrectAction }),
+    let from_impl = quote! {
+        impl From<#name> for #enum_name {
+            fn from(action: #name) -> Self {
+                #enum_name::#name {
+                    #(#fields_setups)*
                 }
             }
+        }
+    };
+
+    let name_lower = Ident::new(&name.to_string().to_ascii_lowercase(), Span::call_site());
+
+    let helper_func_impl = quote! {
+        pub fn #name_lower() -> #name {
+            #name::default()
         }
     };
 
@@ -219,7 +209,7 @@ fn impl_single_variant(variant: &Variant) -> TokenStream {
             }
         }
 
-        #try_from_impl
+        #from_impl
 
         impl #name {
             pub fn new() -> Self {
@@ -228,5 +218,8 @@ fn impl_single_variant(variant: &Variant) -> TokenStream {
 
             #(#fields_methods)*
         }
+
+
+        #helper_func_impl
     }
 }
