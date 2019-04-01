@@ -9,3 +9,4 @@ rustypwn_derive = { path = "../rustypwn_derive" }
 regex = "1"
 crossterm = "0.6"
 log = "0.4"
+subprocess = "0.1.16"

@@ -22,7 +22,10 @@ pub enum Action {
         #[default = "Timeout::Infinite"]
         timeout: Timeout,
         #[default = "0x1000"]
-        size: u64,
+        size: usize,
+        #[default = "false"]
+        /// if we have to receive such size to return
+        must: bool,
     },
     Recvline {
         #[default = "Timeout::Infinite"]

@@ -8,11 +8,12 @@ use super::error::{Error, ErrorKind};
 
 pub trait TubeInternal {
     /// internal buffer
-    fn mut_buffer(&self) -> &mut Buffer;
+    fn mut_buffer(&mut self) -> &mut Buffer;
     fn buffer(&self) -> &Buffer;
 
     fn send(&mut self, action: Action) -> Result<(), Error>;
     fn recv(&mut self, action: Action) -> Result<Vec<u8>, Error>;
+    fn close(&mut self) -> Result<(), Error>;
 
     fn sendline(&mut self, action: Action) -> Result<(), Error> {
         match action {
@@ -65,7 +66,8 @@ pub trait TubeInternal {
                         _ => {
                             let arg = Action::Recv {
                                 timeout: timeout,
-                                size: 0x1000
+                                size: 0x1000,
+                                must: false,
                             };
                             self.recv(arg)?;
                         },

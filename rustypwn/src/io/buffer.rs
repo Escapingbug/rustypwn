@@ -32,4 +32,21 @@ impl Buffer {
             None => Ok(None)
         }
     }
+
+    pub fn get(&mut self, size: usize, strict: bool) -> Option<Vec<u8>> {
+        if self.data.len() == 0 {
+            return None;
+        }
+
+        if self.data.len() >= size {
+            let data = self.data.clone();
+            let (l, r) = data.split_at(size);
+            self.data = r.to_vec();
+            Some(l.to_vec())
+        } else if strict {
+            None 
+        } else {
+            Some(self.data.clone())
+        }
+    }
 }
