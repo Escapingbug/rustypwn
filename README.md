@@ -1,3 +1,3 @@
 # rustypwn
 
-pwntools in Rust. Maybe it's able to be accessed in other langs? 
+In development pwntools in Rust. (Not working yet, not even close). Maybe it should able to be accessed in other langs? 
