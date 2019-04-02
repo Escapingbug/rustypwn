@@ -9,4 +9,6 @@ rustypwn_derive = { path = "../rustypwn_derive" }
 regex = "1"
 crossterm = "0.6"
 log = "0.4"
-subprocess = "0.1.16"
+# use my forked version to pass the tests
+# PR has been made to original repo
+subprocess = { git = "https://github.com/Escapingbug/rust-subprocess" }

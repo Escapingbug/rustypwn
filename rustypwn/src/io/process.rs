@@ -1,5 +1,5 @@
 use std::ffi::OsString;
-use std::time::SystemTime;
+use std::time::{SystemTime};
 use super::arg::{
     Action,
     Timeout,
@@ -133,8 +133,7 @@ impl TubeInternal for Process {
                         return Err(Error::from_kind(ErrorKind::UnexpectedTerminate(exit)));
                     }
 
-                    let input = Some(b"".as_ref());
-                    let (out, err) = self.p.communicate_bytes(input)?;
+                    let (out, err) = self.p.communicate_bytes(None)?;
                     if let Some(mut out) = out {
                         self.mut_buffer().append(&mut out);
                     }
@@ -171,12 +170,27 @@ impl Tube for Process {}
 #[test]
 fn popen_test_unix() {
 
+
+    use std::time::*;
     use super::arg::*;
 
     let mut p = Process::try_new(ProcessArg::default()
                      .argv(&["cat"])).unwrap();
     p.send(send().content(b"123".to_vec()).into()).unwrap();
     let res = p.recv(recv().size(20).into()).unwrap();
-    println!("{:?}", std::str::from_utf8(&res).unwrap());
-    assert!(p.recv(recv().size(20).into()).unwrap().len() > 0);
+    assert!(res == b"123");
+
+    let mut p = Process::try_new(ProcessArg::default()
+                                 .argv(&["cat"])).unwrap();
+    let now = SystemTime::now();
+    assert!(p.recv(recv()
+                   .size(20)
+                   .timeout(Timeout::Of(Duration::from_secs(1)))
+                   .into()).is_err() == true);
+    let elapsed = now.elapsed().unwrap();
+    assert!(Duration::from_secs(2) >= elapsed);
+    assert!(Duration::from_secs(1) <= elapsed);
+    let mut p = Process::try_new(ProcessArg::default()
+                                 .argv(&["cat"])).unwrap();
+    p.close().unwrap();
 }
