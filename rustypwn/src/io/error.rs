@@ -2,7 +2,7 @@ use std::fmt;
 use subprocess::PopenError;
 use subprocess::ExitStatus;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     /// incorrect action variant is used to try to convert
     /// into action argument

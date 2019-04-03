@@ -1,4 +1,6 @@
-use std::time::SystemTime;
+use std::time::{SystemTime, Duration};
+use std::io;
+use std::io::{BufRead, Write};
 use super::buffer::Buffer;
 use super::arg::{
     Action,
@@ -14,6 +16,7 @@ pub trait TubeInternal {
     fn send(&mut self, action: Action) -> Result<(), Error>;
     fn recv(&mut self, action: Action) -> Result<Vec<u8>, Error>;
     fn close(&mut self) -> Result<(), Error>;
+    fn shutdown(&mut self, action: Action) -> Result<(), Error>;
 
     fn sendline(&mut self, action: Action) -> Result<(), Error> {
         match action {
@@ -75,7 +78,7 @@ pub trait TubeInternal {
 
                 }
             },
-            _ => panic!("Inccorrect action, internal bug")
+            _ => panic!("Incorrect action, internal bug")
         }
 
     }
@@ -91,9 +94,50 @@ pub trait TubeInternal {
                 };
                 self.recvuntil(arg)
             },
-            _ => panic!("Inccorrect action, internal bug")
+            _ => panic!("Incorrect action, internal bug")
         }
         
+    }
+
+    fn interactive(&mut self, action: Action) -> Result<(), Error> {
+        match action {
+            Action::Interactive => {
+                let stdin = io::stdin();
+                print!("$ ");
+                io::stdout().flush();
+                for line in stdin.lock().lines() {
+                    let line = line.expect("unable to read line in interactive");
+                    let arg = Action::Sendline {
+                        timeout: Timeout::Infinite,
+                        content: line.as_bytes().to_vec(),
+                    };
+                    self.sendline(arg)?;
+                    let arg = Action::Recv {
+                        timeout: Timeout::Of(Duration::from_millis(50)),
+                        size: 0x1000,
+                        must: false,
+                    };
+                    let mut recved = Vec::new();
+                    loop {
+                        let res = self.recv(arg.clone());
+                        match res {
+                            Ok(res) => recved.extend(res),
+                            Err(e) if e.kind == ErrorKind::Timeout => {
+                                break;
+                            },
+                            Err(e) => return Err(e),
+                        }
+                    }
+                    print!("{}", recved.iter().map(|c| *c as char).collect::<String>());
+                    print!("$ ");
+                    io::stdout().flush();
+                }
+
+                self.shutdown(Action::Shutdown { stdin: true, stdout: true})?;
+                Ok(())
+            },
+            _ => panic!("Incorrect action, internal bug")
+        }
     }
 }
 
@@ -106,6 +150,8 @@ pub trait Tube: TubeInternal {
             Action::Sendline {..} => self.sendline(action).map(|_res| None),
             Action::Recvline {..} => self.recvline(action).map(|res| Some(res)),
             Action::Recvuntil {..} => self.recvuntil(action).map(|res| Some(res)),
+            Action::Interactive => self.interactive(action).map(|_res| None),
+            Action::Shutdown {..} => self.shutdown(action).map(|_res| None),
         }
     }
 }

@@ -1,5 +1,6 @@
 use regex::bytes::Regex;
 use super::error::Error;
+use std::mem;
 
 /// buffer to store stream data
 #[derive(Default, Debug)]
@@ -46,7 +47,9 @@ impl Buffer {
         } else if strict {
             None 
         } else {
-            Some(self.data.clone())
+            let mut res = Vec::new();
+            mem::swap(&mut self.data, &mut res);
+            Some(res)
         }
     }
 }

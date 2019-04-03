@@ -10,7 +10,7 @@ pub enum Timeout {
 // TODO get rid of Vec<u8>, use &[u8] instead
 // but this will require modification on lifetimes (especially in derive impl)
 /// IO action
-#[derive(Debug, ActionArg)]
+#[derive(Debug, Clone, ActionArg)]
 pub enum Action {
     Send {
         #[default = "Timeout::Infinite"]
@@ -42,6 +42,13 @@ pub enum Action {
         timeout: Timeout,
         #[default = "b\"\".to_vec()"]
         content: Vec<u8>,
+    },
+    Interactive,
+    Shutdown {
+        #[default = "true"]
+        stdin: bool,
+        #[default = "true"]
+        stdout: bool,
     }
 }
 

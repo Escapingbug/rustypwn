@@ -11,4 +11,5 @@ crossterm = "0.6"
 log = "0.4"
 # use my forked version to pass the tests
 # PR has been made to original repo
-subprocess = { git = "https://github.com/Escapingbug/rust-subprocess" }
+rustypwn_subprocess = { git = "https://github.com/Escapingbug/rust-subprocess" }
+#rustypwn_subprocess = { path = "../../rust-subprocess" }

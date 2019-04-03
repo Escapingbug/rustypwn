@@ -1,2 +1,2 @@
-#![feature(custom_attribute, try_from)]
+#![feature(custom_attribute, bind_by_move_pattern_guards, try_from)]
 pub mod io;

@@ -85,6 +85,26 @@ impl TubeInternal for Process {
         &self.buf
     }
 
+    fn shutdown(&mut self, action: Action) -> Result<(), Error> {
+        match action {
+            Action::Shutdown {
+                stdin,
+                stdout
+            } => {
+                if stdin {
+                    self.p.shutdown_stdin()?;
+                }
+
+                if stdout {
+                    self.p.shutdown_stdout()?;
+                }
+            },
+            _ => panic!("Incorrect action, internal bug")
+        }
+
+        Ok(())
+    }
+
     fn send(&mut self, action: Action) -> Result<(), Error> {
         match action {
             Action::Send {
@@ -170,7 +190,6 @@ impl Tube for Process {}
 #[test]
 fn popen_test_unix() {
 
-
     use std::time::*;
     use super::arg::*;
 
@@ -193,4 +212,7 @@ fn popen_test_unix() {
     let mut p = Process::try_new(ProcessArg::default()
                                  .argv(&["cat"])).unwrap();
     p.close().unwrap();
+    let mut p = Process::try_new(ProcessArg::default()
+                                 .argv(&["bash"])).unwrap();
+    p.interactive(interactive().into()).unwrap();
 }
