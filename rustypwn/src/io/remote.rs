@@ -62,7 +62,8 @@ impl TubeInternal for Remote {
     #[action(timeout, content)]
     fn send(&mut self, action: Action) -> Result<(), Error> {
         self.stream.set_write_timeout(timeout)?;
-        self.stream.write(&content)?;
+        self.stream.write(&content)
+            .map_err(|e| if e.kind() == std::io::ErrorKind::TimedOut { Error::timeout() } else { e.into() })?;
         Ok(())
     }
 
@@ -71,7 +72,8 @@ impl TubeInternal for Remote {
         content.resize(size, 0u8);
 
         self.stream.set_read_timeout(timeout)?;
-        let n = self.stream.read(&mut content)?;
+        let n = self.stream.read(&mut content)
+            .map_err(|e| if e.kind() == std::io::ErrorKind::TimedOut { Error::timeout() } else { e.into() })?;
         Ok(content[0..n].to_vec())
     }
 
@@ -89,7 +91,8 @@ impl TubeInternal for Remote {
                 return Ok(res);
             }
 
-            let n = self.stream.read(&mut content)?;
+            let n = self.stream.read(&mut content)
+                .map_err(|e| if e.kind() == std::io::ErrorKind::TimedOut { Error::timeout() } else { e.into() } )?;
             let mut put = content[0..n].to_vec();
             self.mut_buffer().append(&mut put);
 

@@ -90,6 +90,7 @@ impl TubeInternal for Process {
     #[action(timeout, content)]
     fn send(&mut self, action: Action) -> Result<(), Error> {
         let _ = timeout;
+
         if let Some(exit) = self.p.poll() {
             return Err(Error::from_kind(ErrorKind::UnexpectedTerminate(exit)));
         }
@@ -193,13 +194,8 @@ fn popen_test_unix() {
     let mut p = Process::try_new(ProcessArg::default().argv(&["cat"])).unwrap();
     let now = SystemTime::now();
     assert!(
-        p.recv(
-            recv()
-                .size(20)
-                .timeout(Some(Duration::from_secs(1)))
-                .into()
-        )
-        .is_err()
+        p.recv(recv().size(20).timeout(Some(Duration::from_secs(1))).into())
+            .is_err()
             == true
     );
     let elapsed = now.elapsed().unwrap();
