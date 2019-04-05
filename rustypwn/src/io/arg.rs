@@ -1,11 +1,7 @@
 use std::time::Duration;
 use rustypwn_derive::ActionArg;
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum Timeout {
-    Infinite,
-    Of(Duration),
-}
+pub type Timeout = Option<Duration>;
 
 // TODO get rid of Vec<u8>, use &[u8] instead
 // but this will require modification on lifetimes (especially in derive impl)
@@ -13,13 +9,13 @@ pub enum Timeout {
 #[derive(Debug, Clone, ActionArg)]
 pub enum Action {
     Send {
-        #[default = "Timeout::Infinite"]
+        #[default = "None"]
         timeout: Timeout,
         #[default = "b\"\".to_vec()"]
         content: Vec<u8>,
     },
     Recv {
-        #[default = "Timeout::Infinite"]
+        #[default = "None"]
         timeout: Timeout,
         #[default = "0x1000"]
         size: usize,
@@ -28,17 +24,17 @@ pub enum Action {
         must: bool,
     },
     Recvline {
-        #[default = "Timeout::Infinite"]
+        #[default = "None"]
         timeout: Timeout,
     },
     Recvuntil {
-        #[default = "Timeout::Infinite"]
+        #[default = "None"]
         timeout: Timeout,
         #[default = "\"\".to_string()"]
         pattern: String,
     },
     Sendline {
-        #[default = "Timeout::Infinite"]
+        #[default = "None"]
         timeout: Timeout,
         #[default = "b\"\".to_vec()"]
         content: Vec<u8>,
@@ -61,7 +57,7 @@ fn test_action() {
             timeout,
             ..
         } => {
-            assert_eq!(timeout, Timeout::Infinite);
+            assert_eq!(timeout, None);
         },
         _ => {}
     }

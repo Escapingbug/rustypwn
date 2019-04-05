@@ -109,6 +109,32 @@ impl TubeInternal for Process {
         Ok(())
     }
 
+    fn recv_once(&mut self, size: usize, timeout: Timeout) -> Result<Vec<u8>, Error> {
+        let mut v = vec![];
+        let now = SystemTime::now();
+        loop {
+            let (out, err) = self.p.communicate_bytes(None)?;
+            if let Some(mut out) = out {
+                v.append(&mut out);
+            }
+
+            if let Some(mut err) = err {
+                v.append(&mut err);
+            }
+            if v.len() >= size {
+                break;
+            }
+
+            if let Some(duration) = timeout {
+                if now.elapsed().unwrap() >= duration {
+                    break;
+                }
+            }
+        }
+
+        Ok(v)
+    }
+
     #[action(timeout, size, must)]
     fn recv(&mut self, action: Action) -> Result<Vec<u8>, Error> {
         let now = SystemTime::now();
@@ -131,7 +157,7 @@ impl TubeInternal for Process {
                 self.mut_buffer().append(&mut err);
             }
 
-            if let Timeout::Of(timeout) = timeout {
+            if let Some(timeout) = timeout {
                 match now.elapsed() {
                     Ok(elapsed) => {
                         if elapsed >= timeout {
@@ -170,7 +196,7 @@ fn popen_test_unix() {
         p.recv(
             recv()
                 .size(20)
-                .timeout(Timeout::Of(Duration::from_secs(1)))
+                .timeout(Some(Duration::from_secs(1)))
                 .into()
         )
         .is_err()

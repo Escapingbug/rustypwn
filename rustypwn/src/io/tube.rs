@@ -12,6 +12,8 @@ pub trait TubeInternal: Drop {
     fn mut_buffer(&mut self) -> &mut Buffer;
     fn buffer(&self) -> &Buffer;
 
+    fn recv_once(&mut self, size: usize, timeout: Timeout) -> Result<Vec<u8>, Error>;
+
     fn send(&mut self, action: Action) -> Result<(), Error>;
     fn recv(&mut self, action: Action) -> Result<Vec<u8>, Error>;
     fn shutdown(&mut self, action: Action) -> Result<(), Error>;
@@ -31,7 +33,7 @@ pub trait TubeInternal: Drop {
         let now = SystemTime::now();
         loop {
             match timeout {
-                Timeout::Of(timeout) => match now.elapsed() {
+                Some(timeout) => match now.elapsed() {
                     Ok(elapsed) => {
                         if elapsed > timeout {
                             return Err(Error::from_kind(ErrorKind::Timeout));
@@ -50,12 +52,8 @@ pub trait TubeInternal: Drop {
                     return Ok(mat);
                 }
                 _ => {
-                    let arg = Action::Recv {
-                        timeout: timeout,
-                        size: 0x1000,
-                        must: false,
-                    };
-                    self.recv(arg)?;
+                    let mut v = self.recv_once(0x1000, timeout)?;
+                    self.mut_buffer().append(&mut v);
                 }
             }
         }
@@ -78,12 +76,12 @@ pub trait TubeInternal: Drop {
         for line in stdin.lock().lines() {
             let line = line.expect("unable to read line in interactive");
             let arg = Action::Sendline {
-                timeout: Timeout::Infinite,
+                timeout: None,
                 content: line.as_bytes().to_vec(),
             };
             self.sendline(arg)?;
             let arg = Action::Recv {
-                timeout: Timeout::Of(Duration::from_millis(50)),
+                timeout: Some(Duration::from_millis(50)),
                 size: 0x1000,
                 must: false,
             };
